@@ -1,6 +1,6 @@
 # AZ-104 Exam Simulator
 
-![AZ-104 Exam Simulator](public/preview.png)
+![AZ-104 Exam Simulator](public/FotoREADME.png)
 
 An interactive **Microsoft Azure AZ-104 Exam Simulator** designed to provide a realistic certification experience with AI-powered explanations, practice mode, case studies, and detailed performance analytics.
 
