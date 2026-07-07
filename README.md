@@ -8,7 +8,7 @@ An interactive **Microsoft Azure AZ-104 Exam Simulator** designed to provide a r
 
 👉 **Try the simulator here:**
 
-**https://az-104-exam-simulator.vercel.app**
+[![Live Demo](https://img.shields.io/badge/🚀-Live%20Demo-7C3AED?style=for-the-badge)](https://az-104-exam-simulator.vercel.app)
 
 ## 📚 Related Project
 
@@ -16,13 +16,12 @@ This simulator is designed to complement the **Azure Infrastructure Roadmap**, a
 
 👉 **Azure Infrastructure Roadmap**
 
-https://github.com/FabianGM004/Azure-Infrastructure-Roadmap
+[![Azure Infrastructure Roadmap](https://img.shields.io/badge/📖-Azure%20Infrastructure%20Roadmap-0078D4?style=for-the-badge)](https://github.com/FabianGM004/Azure-Infrastructure-Roadmap)
 
 ## ✨ Features
 
 - ✅ Exam Mode
 - ✅ Practice Mode
-- ✅ Case Studies
 - ✅ AI-powered explanations
 - ✅ Mobile-first interface
 - ✅ Performance reports
@@ -44,10 +43,7 @@ https://github.com/FabianGM004/Azure-Infrastructure-Roadmap
 - [x] AI-powered explanations
 - [ ] Adaptive difficulty
 - [ ] AI-generated question variants
-- [ ] Advanced analytics
 - [ ] Weak-topic recommendations
-- [ ] Interactive case studies
-- [ ] Labs integration
 
 ---
 
