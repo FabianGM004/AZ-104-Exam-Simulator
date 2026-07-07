@@ -1,15 +1,26 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { trackEvent } from "@/lib/analytics";
 import { startExam } from "@/lib/examEngine";
 import { saveExamSession } from "@/lib/examStorage";
 import type { ExamDifficulty, ExamMode, ExamQuestion } from "@/types/exam";
 
 export default function Setup() {
+  const [language, setLanguage] = useState<"en" | "es">("en");
   const [questions, setQuestions] = useState(10);
   const [difficulty, setDifficulty] = useState<ExamDifficulty>("Mixed");
   const [mode, setMode] = useState<ExamMode>("Practice");
   const [isGenerating, setIsGenerating] = useState(false);
+
+  useEffect(() => {
+    const savedLanguage = localStorage.getItem("language");
+    if (savedLanguage === "es" || savedLanguage === "en") {
+      setLanguage(savedLanguage);
+    }
+  }, []);
+
+  const isSpanish = language === "es";
 
   const optionClass = (active: boolean) =>
     active
@@ -28,6 +39,7 @@ export default function Setup() {
         body: JSON.stringify({
           questions,
           difficulty,
+          language,
         }),
       });
 
@@ -50,10 +62,22 @@ export default function Setup() {
       );
 
       saveExamSession(session);
+
+      trackEvent("exam_started", {
+        questions: generatedQuestions.length,
+        difficulty,
+        mode,
+        language,
+      });
+
       window.location.href = "/exam";
     } catch (error) {
       console.error(error);
-      alert("Could not generate the exam. Try again.");
+      alert(
+        isSpanish
+          ? "No se pudo generar el examen. Inténtalo de nuevo."
+          : "Could not generate the exam. Try again."
+      );
     } finally {
       setIsGenerating(false);
     }
@@ -67,14 +91,20 @@ export default function Setup() {
             AZ-104 Simulator
           </p>
 
-          <h1 className="mb-3 text-4xl font-black">Configure Exam</h1>
+          <h1 className="mb-3 text-4xl font-black">
+            {isSpanish ? "Configurar examen" : "Configure Exam"}
+          </h1>
 
           <p className="mb-10 text-violet-100/70">
-            Generate a complete AI-powered AZ-104 exam.
+            {isSpanish
+              ? "Genera un examen AZ-104 completo con inteligencia artificial."
+              : "Generate a complete AI-powered AZ-104 exam."}
           </p>
 
           <div className="mb-8">
-            <p className="mb-4 font-bold">Questions</p>
+            <p className="mb-4 font-bold">
+              {isSpanish ? "Preguntas" : "Questions"}
+            </p>
 
             <div className="grid grid-cols-3 gap-3">
               {[10, 20, 30].map((amount) => (
@@ -90,7 +120,9 @@ export default function Setup() {
           </div>
 
           <div className="mb-8">
-            <p className="mb-4 font-bold">Difficulty</p>
+            <p className="mb-4 font-bold">
+              {isSpanish ? "Dificultad" : "Difficulty"}
+            </p>
 
             <div className="grid grid-cols-3 gap-3">
               {(["Easy", "Mixed", "Hard"] as ExamDifficulty[]).map((level) => (
@@ -99,25 +131,41 @@ export default function Setup() {
                   onClick={() => setDifficulty(level)}
                   className={optionClass(difficulty === level)}
                 >
-                  {level}
+                  {level === "Easy"
+                    ? isSpanish
+                      ? "Fácil"
+                      : "Easy"
+                    : level === "Mixed"
+                    ? isSpanish
+                      ? "Mixta"
+                      : "Mixed"
+                    : isSpanish
+                    ? "Difícil"
+                    : "Hard"}
                 </button>
               ))}
             </div>
           </div>
 
           <div className="mb-8">
-            <p className="mb-4 font-bold">Exam Scope</p>
+            <p className="mb-4 font-bold">
+              {isSpanish ? "Alcance del examen" : "Exam Scope"}
+            </p>
 
             <div className="rounded-2xl border border-fuchsia-400 bg-gradient-to-r from-violet-600/80 to-fuchsia-500/80 p-5">
-              <div className="font-black">Full Roadmap Exam</div>
+              <div className="font-black">
+                {isSpanish ? "Examen completo del Roadmap" : "Full Roadmap Exam"}
+              </div>
               <div className="mt-2 text-sm text-violet-100/80">
-                Questions are generated across your Azure Infrastructure Roadmap.
+                {isSpanish
+                  ? "Las preguntas se generan a partir de tu Azure Infrastructure Roadmap."
+                  : "Questions are generated across your Azure Infrastructure Roadmap."}
               </div>
             </div>
           </div>
 
           <div className="mb-10">
-            <p className="mb-4 font-bold">Mode</p>
+            <p className="mb-4 font-bold">{isSpanish ? "Modo" : "Mode"}</p>
 
             <div className="grid gap-3">
               {(["Practice", "Exam"] as ExamMode[]).map((examMode) => (
@@ -130,10 +178,22 @@ export default function Setup() {
                       : "rounded-2xl border border-white/10 bg-white/[0.04] p-5 text-left opacity-70 hover:bg-white/10 hover:opacity-100"
                   }
                 >
-                  <span className="block font-black">{examMode} Mode</span>
+                  <span className="block font-black">
+                    {examMode === "Practice"
+                      ? isSpanish
+                        ? "Modo práctica"
+                        : "Practice Mode"
+                      : isSpanish
+                      ? "Modo examen"
+                      : "Exam Mode"}
+                  </span>
                   <span className="text-sm text-violet-100/70">
                     {examMode === "Practice"
-                      ? "Feedback after every question."
+                      ? isSpanish
+                        ? "Recibe feedback después de cada pregunta."
+                        : "Feedback after every question."
+                      : isSpanish
+                      ? "Feedback solo al finalizar el examen."
                       : "Feedback only after finishing the exam."}
                   </span>
                 </button>
@@ -146,7 +206,13 @@ export default function Setup() {
             disabled={isGenerating}
             className="block w-full rounded-2xl bg-gradient-to-r from-violet-600 to-fuchsia-500 py-4 text-lg font-black shadow-[0_12px_32px_rgba(168,85,247,.35)] transition hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {isGenerating ? "Generating Exam..." : "Begin Exam →"}
+            {isGenerating
+              ? isSpanish
+                ? "Generando examen..."
+                : "Generating Exam..."
+              : isSpanish
+              ? "Empezar examen →"
+              : "Begin Exam →"}
           </button>
         </div>
       </section>

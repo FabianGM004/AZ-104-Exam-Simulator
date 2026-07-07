@@ -1,27 +1,74 @@
 import { ai } from "@/lib/gemini";
 
+type GeneratedQuestion = {
+  id: string;
+  roadmapModule: string;
+  examObjective: string;
+  topic: string;
+  domain: string;
+  difficulty: string;
+  question: string;
+  options: string[];
+  correctAnswer: number;
+  explanation: string;
+  references: string[];
+};
+
+function shuffleQuestionOptions(question: GeneratedQuestion): GeneratedQuestion {
+  const correctOption = question.options[question.correctAnswer];
+
+  const shuffledOptions = [...question.options]
+    .map((option) => ({ option, sort: Math.random() }))
+    .sort((a, b) => a.sort - b.sort)
+    .map((item) => item.option);
+
+  const newCorrectAnswer = shuffledOptions.indexOf(correctOption);
+
+  return {
+    ...question,
+    options: shuffledOptions,
+    correctAnswer: newCorrectAnswer,
+  };
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
 
+    const language = body.language === "es" ? "Spanish" : "English";
     const questionCount =
       body.questions === 20 || body.questions === 30 ? body.questions : 10;
 
-    const prompt = `Create exactly ${questionCount} AZ-104 exam questions. Return ONLY valid JSON.
+    const prompt = `Create exactly ${questionCount} Microsoft AZ-104 exam simulator questions.
+
+Return ONLY valid JSON.
+Do not include markdown.
+Do not include comments.
+Generate the entire exam in ${language}.
 
 Scope: Full AZ-104 Roadmap
 Difficulty: ${body.difficulty ?? "Mixed"}
+
+Use only these roadmapModule values:
+01-Identity-Governance
+02-Compute
+03-Storage
+04-Networking
+05-Monitoring-BCDR
+06-Cost-Management
+07-Automation
+08-Security
 
 JSON shape:
 {
   "questions": [
     {
       "id": "generated-1",
-      "roadmapModule": "str",
+      "roadmapModule": "04-Networking",
       "examObjective": "str",
       "topic": "str",
       "domain": "str",
-      "difficulty": "str",
+      "difficulty": "Medium",
       "question": "str",
       "options": ["", "", "", ""],
       "correctAnswer": 0,
@@ -32,14 +79,32 @@ JSON shape:
 }
 
 Rules:
-AZ-104 only.
-Scenario-based questions.
-Exactly 4 options.
-correctAnswer must be 0, 1, 2 or 3.
-Distribute correctAnswer values evenly across 0, 1, 2 and 3. Do not make most correct answers the same letter.
-Use Microsoft Learn references.
-Avoid duplicate topics.
-Questions must cover different Azure areas.`;
+- AZ-104 only.
+- Exactly ${questionCount} questions.
+- Every question must have exactly 4 options.
+- correctAnswer must be 0, 1, 2, or 3.
+- Use official Microsoft Learn URLs only.
+- Questions must cover different Azure areas.
+- Avoid duplicate topics.
+- Questions must resemble official Microsoft AZ-104 exam style.
+- Prefer realistic Azure administrator scenarios.
+- Avoid trivia or memorization-only questions.
+- Do not generate trick questions.
+- Options must be concise and readable.
+- Each option should ideally be under 18 words.
+- Do not use raw Azure permission strings as answer options.
+- Do not use ARM action paths such as Microsoft.Network/.../read unless absolutely necessary.
+- Do not use JSON, ARM templates, REST API paths, CLI commands, or PowerShell commands as answer options unless the topic specifically requires it.
+- If the topic is RBAC or Custom Roles, describe permissions in natural language instead of raw Microsoft.* permission strings.
+- Questions and answers must render cleanly on desktop and mobile.
+- Do not include markdown, code blocks, tables, or bullet lists inside questions or answers.
+- Easy questions must test one common Azure administration concept.
+- Mixed difficulty must be mostly medium and scenario-based.
+- Hard questions must require reasoning across multiple Azure concepts.
+- Never make a question harder only by making the answer options longer.
+- Explanations must be 40 to 90 words.
+- Explanations must explain why the correct answer is correct.
+- Explanations must briefly explain why the closest distractor is incorrect.`;
 
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash-lite",
@@ -56,9 +121,13 @@ Questions must cover different Azure areas.`;
       throw new Error("Invalid questions array");
     }
 
+    const questions = data.questions.map((question: GeneratedQuestion) =>
+      shuffleQuestionOptions(question)
+    );
+
     return Response.json({
       ok: true,
-      questions: data.questions,
+      questions,
     });
   } catch (error) {
     console.error("GENERATE EXAM ERROR:", error);

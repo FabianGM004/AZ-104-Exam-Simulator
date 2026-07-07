@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { getResults } from "@/lib/examEngine";
 import { loadExamSession } from "@/lib/examStorage";
+import { trackEvent } from "@/lib/analytics";
 import type { ExamResult, ExamSession } from "@/types/exam";
 
 const ROADMAP_HOME =
@@ -34,8 +35,14 @@ function getRoadmapUrl(roadmapModule: string) {
 export default function Results() {
   const [results, setResults] = useState<ExamResult | null>(null);
   const [session, setSession] = useState<ExamSession | null>(null);
+  const [language, setLanguage] = useState<"en" | "es">("en");
 
   useEffect(() => {
+    const savedLanguage = localStorage.getItem("language");
+    const currentLanguage = savedLanguage === "es" ? "es" : "en";
+
+    setLanguage(currentLanguage);
+
     const savedSession = loadExamSession();
 
     if (!savedSession) {
@@ -43,11 +50,25 @@ export default function Results() {
       return;
     }
 
+    const examResults = getResults(savedSession);
+
     setSession(savedSession);
-    setResults(getResults(savedSession));
+    setResults(examResults);
+
+    trackEvent("exam_completed", {
+      score: examResults.score,
+      correct: examResults.correct,
+      wrong: examResults.wrong,
+      total: examResults.total,
+      mode: savedSession.settings.mode,
+      difficulty: savedSession.settings.difficulty,
+      language: currentLanguage,
+    });
   }, []);
 
   if (!results || !session) return null;
+
+  const isSpanish = language === "es";
 
   const averageTime =
     results.answers.length === 0
@@ -65,44 +86,60 @@ export default function Results() {
         <div className="w-full max-w-5xl rounded-[34px] border border-white/10 bg-white/[0.045] p-8 shadow-[0_30px_90px_rgba(0,0,0,.45)] backdrop-blur-3xl">
           <div className="text-center">
             <p className="mb-3 text-sm font-semibold uppercase tracking-[0.28em] text-violet-200/90">
-              Exam Results
+              {isSpanish ? "Resultados del examen" : "Exam Results"}
             </p>
 
             <h1 className="mb-4 text-6xl font-black">{results.score}%</h1>
 
             <p className="mb-10 text-violet-100/80">
-              You answered {results.correct} out of {results.total} questions correctly.
+              {isSpanish
+                ? `Has respondido correctamente ${results.correct} de ${results.total} preguntas.`
+                : `You answered ${results.correct} out of ${results.total} questions correctly.`}
             </p>
           </div>
 
           <div className="mb-10 grid gap-4 sm:grid-cols-4">
             <div className="rounded-2xl border border-white/10 bg-white/[0.06] p-5 text-center">
-              <p className="text-sm text-violet-100/60">Correct</p>
+              <p className="text-sm text-violet-100/60">
+                {isSpanish ? "Correctas" : "Correct"}
+              </p>
               <p className="text-3xl font-black">{results.correct}</p>
             </div>
 
             <div className="rounded-2xl border border-white/10 bg-white/[0.06] p-5 text-center">
-              <p className="text-sm text-violet-100/60">Wrong</p>
+              <p className="text-sm text-violet-100/60">
+                {isSpanish ? "Incorrectas" : "Wrong"}
+              </p>
               <p className="text-3xl font-black">{results.wrong}</p>
             </div>
 
             <div className="rounded-2xl border border-white/10 bg-white/[0.06] p-5 text-center">
-              <p className="text-sm text-violet-100/60">Questions</p>
+              <p className="text-sm text-violet-100/60">
+                {isSpanish ? "Preguntas" : "Questions"}
+              </p>
               <p className="text-3xl font-black">{results.total}</p>
             </div>
 
             <div className="rounded-2xl border border-white/10 bg-white/[0.06] p-5 text-center">
-              <p className="text-sm text-violet-100/60">Avg Time</p>
+              <p className="text-sm text-violet-100/60">
+                {isSpanish ? "Tiempo medio" : "Avg Time"}
+              </p>
               <p className="text-3xl font-black">{averageTime}s</p>
             </div>
           </div>
 
           <div className="mb-10 rounded-3xl border border-white/10 bg-white/[0.04] p-6">
-            <h2 className="mb-5 text-2xl font-black">Review Incorrect Answers</h2>
+            <h2 className="mb-5 text-2xl font-black">
+              {isSpanish
+                ? "Revisar respuestas incorrectas"
+                : "Review Incorrect Answers"}
+            </h2>
 
             {wrongAnswers.length === 0 ? (
               <p className="text-violet-100/70">
-                Perfect. You did not miss any questions.
+                {isSpanish
+                  ? "Perfecto. No has fallado ninguna pregunta."
+                  : "Perfect. You did not miss any questions."}
               </p>
             ) : (
               <div className="grid gap-5">
@@ -122,7 +159,9 @@ export default function Results() {
                       className="rounded-2xl border border-red-400/30 bg-red-500/10 p-5"
                     >
                       <p className="mb-2 text-sm font-bold uppercase tracking-[0.2em] text-red-200/80">
-                        Missed Question {index + 1}
+                        {isSpanish
+                          ? `Pregunta fallada ${index + 1}`
+                          : `Missed Question ${index + 1}`}
                       </p>
 
                       <h3 className="mb-4 text-xl font-black">
@@ -131,14 +170,14 @@ export default function Results() {
 
                       <div className="mb-4 grid gap-2 text-sm">
                         <p className="text-red-100">
-                          Your answer:{" "}
+                          {isSpanish ? "Tu respuesta:" : "Your answer:"}{" "}
                           <span className="font-bold">
                             {question.options[answer.selectedAnswer]}
                           </span>
                         </p>
 
                         <p className="text-emerald-100">
-                          Correct answer:{" "}
+                          {isSpanish ? "Respuesta correcta:" : "Correct answer:"}{" "}
                           <span className="font-bold">
                             {question.options[answer.correctAnswer]}
                           </span>
@@ -151,11 +190,11 @@ export default function Results() {
 
                       <div className="mt-5 rounded-2xl border border-white/10 bg-white/[0.05] p-4">
                         <p className="mb-3 text-sm font-bold uppercase tracking-[0.2em] text-violet-200/80">
-                          Study this topic
+                          {isSpanish ? "Estudia este tema" : "Study this topic"}
                         </p>
 
                         <p className="mb-2 text-sm text-violet-100/70">
-                          Module:{" "}
+                          {isSpanish ? "Módulo:" : "Module:"}{" "}
                           <span className="font-bold text-white">
                             {ROADMAP_LINKS[question.roadmapModule]
                               ? question.roadmapModule
@@ -164,7 +203,7 @@ export default function Results() {
                         </p>
 
                         <p className="mb-4 text-sm text-violet-100/70">
-                          Topic:{" "}
+                          {isSpanish ? "Tema:" : "Topic:"}{" "}
                           <span className="font-bold text-white">
                             {question.topic}
                           </span>{" "}
@@ -176,9 +215,17 @@ export default function Results() {
                             href={roadmapUrl}
                             target="_blank"
                             rel="noopener noreferrer"
+                            onClick={() =>
+                              trackEvent("roadmap_opened", {
+                                roadmapModule: question.roadmapModule,
+                                topic: question.topic,
+                              })
+                            }
                             className="rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-500 px-4 py-3 text-center text-sm font-black text-white transition hover:scale-[1.02]"
                           >
-                            Open Roadmap Module ↗
+                            {isSpanish
+                              ? "Abrir módulo del Roadmap ↗"
+                              : "Open Roadmap Module ↗"}
                           </a>
 
                           {microsoftLearnUrl && (
@@ -186,9 +233,17 @@ export default function Results() {
                               href={microsoftLearnUrl}
                               target="_blank"
                               rel="noopener noreferrer"
+                              onClick={() =>
+                                trackEvent("learn_reference_opened", {
+                                  roadmapModule: question.roadmapModule,
+                                  topic: question.topic,
+                                })
+                              }
                               className="rounded-xl border border-white/10 bg-white/[0.06] px-4 py-3 text-center text-sm font-black text-violet-100 transition hover:bg-white/10"
                             >
-                              Microsoft Learn Reference ↗
+                              {isSpanish
+                                ? "Referencia Microsoft Learn ↗"
+                                : "Microsoft Learn Reference ↗"}
                             </a>
                           )}
                         </div>
@@ -205,14 +260,14 @@ export default function Results() {
               href="/setup"
               className="rounded-2xl bg-gradient-to-r from-violet-600 to-fuchsia-500 px-8 py-4 text-center font-black"
             >
-              New Exam
+              {isSpanish ? "Nuevo examen" : "New Exam"}
             </a>
 
             <a
               href="/"
               className="rounded-2xl border border-white/10 bg-white/[0.06] px-8 py-4 text-center font-black text-violet-100"
             >
-              Home
+              {isSpanish ? "Inicio" : "Home"}
             </a>
           </div>
         </div>
