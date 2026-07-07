@@ -31,3 +31,11 @@ https://github.com/FabianGM004/Azure-Infrastructure-Roadmap
 - Vercel
 - Google Gemini API
 
+## Roadmap
+
+- [ ] Study Mode
+- [ ] Weak Areas
+- [ ] Case Studies
+- [ ] Performance Dashboard
+- [ ] AI-generated variants
+- [ ] Labs integration
