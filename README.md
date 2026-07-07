@@ -10,7 +10,7 @@ The project is intended to complement the **Azure Infrastructure Roadmap**, allo
 
 ## 🚀 Live Demo
 
-[![Live Demo](https://img.shields.io/badge/🚀-Launch%20Simulator-7C3AED?style=for-the-badge)](https://az-104-exam-simulator.vercel.app)
+[![Live Demo](https://img.shields.io/badge/🚀-Launch%20Simulator-7C3AED?style=for-the-badge)](https://az-104-exams-simulator-eight.vercel.app/)
 
 ## 📚 Azure Infrastructure Roadmap
 
