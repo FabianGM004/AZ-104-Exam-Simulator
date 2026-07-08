@@ -31,7 +31,7 @@ export default function Home() {
 
       <section className="relative z-10 flex min-h-screen items-center justify-center px-5">
         <div className="relative w-full max-w-3xl rounded-[34px] border border-white/10 bg-white/[0.035] px-8 py-14 text-center shadow-[0_30px_90px_rgba(0,0,0,.45)] backdrop-blur-3xl">
-          <div className="absolute right-6 top-6">
+          <div className="absolute right-6 top-6 z-50">
             <button
   onClick={() => setOpen((value) => !value)}
   className="flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-3 py-2 text-sm font-bold text-white/90 transition hover:bg-white/10"
@@ -69,9 +69,7 @@ export default function Home() {
             )}
           </div>
 
-          <div className="mx-auto mb-8 flex h-16 w-16 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-xl font-black">
-            AZ
-          </div>
+  
 
           <p className="mb-4 text-sm font-semibold uppercase tracking-[0.35em] text-violet-200/90">
             Microsoft Azure Administrator
