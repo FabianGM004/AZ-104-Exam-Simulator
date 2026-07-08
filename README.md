@@ -1,6 +1,6 @@
 # AZ-104 Exam Simulator
 
-![AZ-104 Exam Simulator](public/FotoREADME.png)
+![AZ-104 Exam Simulator](public/FotoREADME2.png)
 
 The **AZ-104 Exam Simulator** is a free web application designed to help candidates prepare for the **Microsoft Azure Administrator (AZ-104)** certification through realistic practice exams.
 
