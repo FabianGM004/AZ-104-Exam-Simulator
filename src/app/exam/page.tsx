@@ -128,12 +128,17 @@ export default function Exam() {
               const isSelected = selected === index;
               const isCorrectAnswer = index === question.correctAnswer;
 
+              // Antes: bg-gradient-to-r ... /80 (semitransparente).
+              // En iOS, el estilo nativo del <button> se mezclaba con
+              // el gradiente semitransparente y lo dejaba "lavado".
+              // Ahora usamos /95 y appearance-none (más abajo) resuelve
+              // el resto.
               let style =
                 "border-white/10 bg-white/[0.06] hover:bg-white/10";
 
               if (isSelected) {
                 style =
-                  "border-fuchsia-400 bg-gradient-to-r from-violet-600/80 to-fuchsia-500/80";
+                  "border-fuchsia-400 bg-gradient-to-r from-violet-600 to-fuchsia-500";
               }
 
               if (isPracticeMode && showFeedback && isCorrectAnswer) {
@@ -154,9 +159,20 @@ export default function Exam() {
                   key={index}
                   disabled={isPracticeMode && showFeedback}
                   onClick={() => setSelected(index)}
-                  className={`rounded-2xl border p-5 text-left font-bold transition-all ${style}`}
+                  // appearance-none: evita que Safari/iOS pinte su propio
+                  // fondo/sombra nativa de botón por encima del gradiente.
+                  // WebkitTapHighlightColor: quita el highlight gris que
+                  // iOS añade al tocar, que también interfería visualmente.
+                  className={`appearance-none rounded-2xl border p-5 text-left font-bold transition-all [-webkit-appearance:none] ${style}`}
+                  style={{ WebkitTapHighlightColor: "transparent" }}
                 >
-                  <span className="mr-3 font-black text-violet-300">
+                  {/*
+                    Antes: font-black aquí + font-bold heredado del botón
+                    = dos pesos de negrita distintos en la misma línea,
+                    y en iOS el peso 900 se "fabrica" (negrita sintética)
+                    de forma inconsistente. Ahora ambos usan el mismo peso.
+                  */}
+                  <span className="mr-3 font-bold text-violet-300">
                     {String.fromCharCode(65 + index)}.
                   </span>
                   {option}
@@ -185,11 +201,12 @@ export default function Exam() {
             <button
               disabled={selected === null}
               onClick={handleButton}
-              className={`rounded-2xl px-7 py-3 font-bold transition ${
+              className={`appearance-none rounded-2xl px-7 py-3 font-bold transition [-webkit-appearance:none] ${
                 selected !== null
                   ? "bg-gradient-to-r from-violet-600 to-fuchsia-500 shadow-[0_10px_30px_rgba(168,85,247,.35)] hover:scale-105"
                   : "bg-white/10 text-white/40"
               }`}
+              style={{ WebkitTapHighlightColor: "transparent" }}
             >
               {isExamMode
                 ? isExamFinished(session)
