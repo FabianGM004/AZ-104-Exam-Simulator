@@ -41,7 +41,8 @@ export default function Exam() {
   const question = getCurrentQuestion(session);
 
   const progress =
-    ((session.currentQuestionIndex + 1) / session.settings.numberOfQuestions) *
+    ((session.currentQuestionIndex + 1) /
+      session.settings.numberOfQuestions) *
     100;
 
   const isPracticeMode = session.settings.mode === "Practice";
@@ -88,51 +89,46 @@ export default function Exam() {
   }
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[radial-gradient(circle_at_top_left,#4b1fa3_0%,#24104d_35%,#090714_100%)] px-5 text-white">
-      <section className="relative z-10 flex min-h-screen items-center justify-center py-10">
-        <div className="w-full max-w-3xl rounded-[34px] border border-white/10 bg-white/[0.045] p-7 shadow-[0_30px_90px_rgba(0,0,0,.45)] backdrop-blur-3xl">
-          <div className="mb-6 flex items-center justify-between">
-            <span className="rounded-full bg-white/10 px-4 py-2 text-sm font-bold">
+    <main className="relative min-h-screen overflow-hidden bg-[radial-gradient(circle_at_top_left,#4b1fa3_0%,#24104d_35%,#090714_100%)] px-2 text-white sm:px-5">
+      <section className="relative z-10 flex min-h-screen items-center justify-center py-5 sm:py-10">
+        <div className="w-full max-w-3xl rounded-[26px] border border-white/10 bg-white/[0.045] p-4 shadow-[0_30px_90px_rgba(0,0,0,.45)] backdrop-blur-3xl sm:rounded-[34px] sm:p-7">
+          <div className="mb-5 flex items-center justify-between gap-3 sm:mb-6">
+            <span className="rounded-full bg-white/10 px-3 py-2 text-xs font-bold sm:px-4 sm:text-sm">
               Question {session.currentQuestionIndex + 1} /{" "}
               {session.settings.numberOfQuestions}
             </span>
 
             <div className="text-right">
-              <p className="text-sm font-semibold text-violet-100">
+              <p className="text-xs font-semibold text-violet-100 sm:text-sm">
                 {formattedTime}
               </p>
 
-              <p className="text-xs text-violet-300/70">
+              <p className="text-[11px] text-violet-300/70 sm:text-xs">
                 {session.settings.mode} • {session.settings.difficulty}
               </p>
             </div>
           </div>
 
-          <div className="mb-10 h-2 rounded-full bg-white/10">
+          <div className="mb-7 h-2 rounded-full bg-white/10 sm:mb-10">
             <div
               className="h-full rounded-full bg-gradient-to-r from-violet-600 to-fuchsia-500 transition-all duration-300"
               style={{ width: `${progress}%` }}
             />
           </div>
 
-          <p className="mb-4 text-sm font-semibold uppercase tracking-[0.25em] text-violet-200/80">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-violet-200/80 sm:mb-4 sm:text-sm sm:tracking-[0.25em]">
             {question.roadmapModule} · {question.topic}
           </p>
 
-          <h1 className="mb-8 text-3xl font-black leading-snug">
+          <h1 className="mb-6 text-[1.85rem] font-black leading-[1.2] sm:mb-8 sm:text-3xl sm:leading-snug">
             {question.question}
           </h1>
 
-          <div className="grid gap-4">
+          <div className="grid gap-3 sm:gap-4">
             {question.options.map((option, index) => {
               const isSelected = selected === index;
               const isCorrectAnswer = index === question.correctAnswer;
 
-              // Antes: bg-gradient-to-r ... /80 (semitransparente).
-              // En iOS, el estilo nativo del <button> se mezclaba con
-              // el gradiente semitransparente y lo dejaba "lavado".
-              // Ahora usamos /95 y appearance-none (más abajo) resuelve
-              // el resto.
               let style =
                 "border-white/10 bg-white/[0.06] hover:bg-white/10";
 
@@ -159,19 +155,9 @@ export default function Exam() {
                   key={index}
                   disabled={isPracticeMode && showFeedback}
                   onClick={() => setSelected(index)}
-                  // appearance-none: evita que Safari/iOS pinte su propio
-                  // fondo/sombra nativa de botón por encima del gradiente.
-                  // WebkitTapHighlightColor: quita el highlight gris que
-                  // iOS añade al tocar, que también interfería visualmente.
-                  className={`appearance-none rounded-2xl border p-5 text-left font-bold transition-all [-webkit-appearance:none] ${style}`}
+                  className={`appearance-none rounded-2xl border p-4 text-left text-sm font-bold leading-6 transition-all [-webkit-appearance:none] sm:p-5 sm:text-base ${style}`}
                   style={{ WebkitTapHighlightColor: "transparent" }}
                 >
-                  {/*
-                    Antes: font-black aquí + font-bold heredado del botón
-                    = dos pesos de negrita distintos en la misma línea,
-                    y en iOS el peso 900 se "fabrica" (negrita sintética)
-                    de forma inconsistente. Ahora ambos usan el mismo peso.
-                  */}
                   <span className="mr-3 font-bold text-violet-300">
                     {String.fromCharCode(65 + index)}.
                   </span>
@@ -183,25 +169,27 @@ export default function Exam() {
 
           {isPracticeMode && showFeedback && (
             <div
-              className={`mt-6 rounded-2xl border p-5 ${
+              className={`mt-6 rounded-2xl border p-4 sm:p-5 ${
                 isCorrect
                   ? "border-emerald-400/40 bg-emerald-500/10"
                   : "border-red-400/40 bg-red-500/10"
               }`}
             >
-              <p className="mb-2 text-xl font-black">
+              <p className="mb-2 text-lg font-black sm:text-xl">
                 {isCorrect ? "✅ Correct" : "❌ Incorrect"}
               </p>
 
-              <p className="text-violet-100/80">{question.explanation}</p>
+              <p className="text-sm leading-7 text-violet-100/80 sm:text-base">
+                {question.explanation}
+              </p>
             </div>
           )}
 
-          <div className="mt-8 flex justify-end">
+          <div className="mt-7 flex justify-end sm:mt-8">
             <button
               disabled={selected === null}
               onClick={handleButton}
-              className={`appearance-none rounded-2xl px-7 py-3 font-bold transition [-webkit-appearance:none] ${
+              className={`appearance-none rounded-2xl px-6 py-3 text-sm font-bold transition [-webkit-appearance:none] sm:px-7 sm:text-base ${
                 selected !== null
                   ? "bg-gradient-to-r from-violet-600 to-fuchsia-500 shadow-[0_10px_30px_rgba(168,85,247,.35)] hover:scale-105"
                   : "bg-white/10 text-white/40"
