@@ -1,5 +1,7 @@
 import { ai } from "@/lib/gemini";
 
+export const maxDuration = 30;
+
 type GeneratedQuestion = {
   id: string;
   roadmapModule: string;
@@ -14,7 +16,17 @@ type GeneratedQuestion = {
   references: string[];
 };
 
-const MODEL = "gemini-2.5-flash-lite";
+// Orden de preferencia: se intenta el primero, y si falla por 429/503
+// se pasa al siguiente. Añade o quita modelos aquí según necesites.
+// Ojo: cada modelo extra que pruebes suma tiempo si también falla,
+// así que no conviene poner más de 2-3.
+const MODEL_CHAIN = [
+  "gemini-3.1-flash-lite",
+  "gemini-3.5-flash",
+] as const;
+
+// Cuántas veces reintentar CADA modelo antes de pasar al siguiente.
+const RETRIES_PER_MODEL = 1;
 
 function shuffleQuestionOptions(question: GeneratedQuestion): GeneratedQuestion {
   const correctOption = question.options[question.correctAnswer];
@@ -33,66 +45,118 @@ function shuffleQuestionOptions(question: GeneratedQuestion): GeneratedQuestion 
   };
 }
 
-function getStatus(error: unknown): number | undefined {
-  if (typeof error !== "object" || error === null) return undefined;
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error("TIMEOUT"));
+    }, ms);
 
-  const possibleError = error as {
-    status?: number;
-    response?: { status?: number };
-    cause?: { status?: number };
-  };
+    promise
+      .then((result) => {
+        clearTimeout(timer);
+        resolve(result);
+      })
+      .catch((error) => {
+        clearTimeout(timer);
+        reject(error);
+      });
+  });
+}
 
+function getStatus(error: any): number | undefined {
   return (
-    possibleError.status ??
-    possibleError.response?.status ??
-    possibleError.cause?.status
+    error?.status ??
+    error?.response?.status ??
+    error?.cause?.status ??
+    undefined
   );
 }
 
-function getErrorMessage(error: unknown): string {
-  if (error instanceof Error) return error.message;
-  return String(error);
-}
-
-function getErrorType(error: unknown) {
+// 429 = sin cuota. 503 = modelo sobrecargado por parte de Google.
+// Ambos justifican reintentar o pasar al siguiente modelo.
+function isRetryableError(error: any): boolean {
   const status = getStatus(error);
-  const message = getErrorMessage(error).toLowerCase();
+  const message = String(error?.message ?? "").toLowerCase();
 
-  if (
+  return (
     status === 429 ||
+    status === 503 ||
     message.includes("429") ||
+    message.includes("503") ||
     message.includes("quota") ||
     message.includes("rate limit") ||
-    message.includes("resource_exhausted")
-  ) {
-    return {
-      status: 429,
-      error: "rate_limit",
-      message:
-        "The AI service has reached a temporary usage limit. Please try again in a few minutes.",
-    };
-  }
-
-  if (
-    status === 503 ||
-    message.includes("503") ||
+    message.includes("resource_exhausted") ||
     message.includes("unavailable") ||
     message.includes("high demand") ||
     message.includes("overloaded")
-  ) {
-    return {
-      status: 503,
-      error: "model_overloaded",
-      message:
-        "The AI service is temporarily busy. Please try again in a few minutes.",
-    };
+  );
+}
+
+function isQuotaError(error: any): boolean {
+  const status = getStatus(error);
+  const message = String(error?.message ?? "").toLowerCase();
+  return (
+    status === 429 ||
+    message.includes("429") ||
+    message.includes("quota") ||
+    message.includes("resource_exhausted")
+  );
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function callGemini(model: string, prompt: string) {
+  return withTimeout(
+    ai.models.generateContent({
+      model,
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
+      config: {
+        temperature: 0.2,
+        responseMimeType: "application/json",
+      },
+    }),
+    15000
+  );
+}
+
+// Recorre MODEL_CHAIN en orden. Para cada modelo, reintenta hasta
+// RETRIES_PER_MODEL veces si el error es reintentable, y si se agotan
+// los intentos, pasa al siguiente modelo de la lista.
+async function generateWithFallbackChain(prompt: string) {
+  let lastError: any;
+
+  for (const model of MODEL_CHAIN) {
+    for (let attempt = 1; attempt <= RETRIES_PER_MODEL; attempt++) {
+      try {
+        return await callGemini(model, prompt);
+      } catch (error: any) {
+        lastError = error;
+
+        if (!isRetryableError(error)) {
+          throw error; // error real (no de cuota/sobrecarga), no reintentes nada
+        }
+
+        const isLastAttemptForThisModel = attempt === RETRIES_PER_MODEL;
+
+        if (!isLastAttemptForThisModel) {
+          const baseDelay = 1200 * attempt;
+          const jitter = Math.random() * 600;
+          console.warn(
+            `[${model}] fallo reintentable (intento ${attempt}/${RETRIES_PER_MODEL}), reintentando en ${Math.round(
+              baseDelay + jitter
+            )}ms`
+          );
+          await sleep(baseDelay + jitter);
+        } else {
+          console.warn(`[${model}] agotados los reintentos, probando siguiente modelo`);
+        }
+      }
+    }
   }
 
-  return {
-    status: 500,
-    error: "generation_error",
-    message: "Could not generate the exam. Please try again.",
-  };
+  throw lastError;
 }
 
 export async function POST(request: Request) {
@@ -170,14 +234,7 @@ Rules:
 - Explanations must explain why the correct answer is correct.
 - Explanations must briefly explain why the closest distractor is incorrect.`;
 
-    const response = await ai.models.generateContent({
-      model: MODEL,
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
-      config: {
-        temperature: 0.2,
-        responseMimeType: "application/json",
-      },
-    });
+    const response = await generateWithFallbackChain(prompt);
 
     const data = JSON.parse(response.text ?? "{}");
 
@@ -193,18 +250,52 @@ Rules:
       ok: true,
       questions,
     });
-  } catch (error: unknown) {
+  } catch (error: any) {
     console.error("GENERATE EXAM ERROR:", error);
 
-    const errorInfo = getErrorType(error);
+    if (error?.message === "TIMEOUT") {
+      return Response.json(
+        {
+          ok: false,
+          error: "timeout",
+          message:
+            "La IA está tardando demasiado en responder. Inténtalo de nuevo en unos segundos.",
+        },
+        { status: 504 }
+      );
+    }
+
+    if (isQuotaError(error)) {
+      return Response.json(
+        {
+          ok: false,
+          error: "rate_limit",
+          message:
+            "Hay mucha demanda ahora mismo. Espera unos segundos e inténtalo de nuevo.",
+        },
+        { status: 429 }
+      );
+    }
+
+    if (isRetryableError(error)) {
+      return Response.json(
+        {
+          ok: false,
+          error: "model_overloaded",
+          message:
+            "El servicio de IA está saturado en este momento. Espera un minuto e inténtalo de nuevo.",
+        },
+        { status: 503 }
+      );
+    }
 
     return Response.json(
       {
         ok: false,
-        error: errorInfo.error,
-        message: errorInfo.message,
+        error: "unknown",
+        message: "No se pudo generar el examen. Inténtalo de nuevo.",
       },
-      { status: errorInfo.status }
+      { status: 500 }
     );
   }
 }
