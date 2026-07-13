@@ -117,7 +117,7 @@ async function callGemini(model: string, prompt: string) {
         responseMimeType: "application/json",
       },
     }),
-    15000
+    12000
   );
 }
 
@@ -205,6 +205,13 @@ JSON shape:
     }
   ]
 }
+
+Language rules:
+- Write the question, scenario, answer descriptions, and explanation in ${language}.
+- Keep all official Microsoft Azure service names, feature names, role names, portal labels, commands, SKUs, and technical terms in English.
+- Do not translate terms such as Resource Group, Virtual Network, Network Security Group, Storage Account, Azure Policy, Availability Zone, Availability Set, Microsoft Entra ID, Recovery Services vault, Private Endpoint, Service Endpoint, Load Balancer, Application Gateway, and Azure Monitor.
+- When useful, include the official abbreviation, for example: Virtual Network (VNet), Network Security Group (NSG), and Role-Based Access Control (RBAC).
+- Do not invent Spanish translations for official Azure product names.
 
 Rules:
 - AZ-104 only.
